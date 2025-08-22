@@ -41,7 +41,8 @@ const navigate = useNavigate();
   });
 
 
-const onSubmit = async (data) => {
+
+    const onSubmit = async (data) => {
     try {
        const response = await API.get(`/users?email=${data.email}`);
       if (response.data.length === 0) {
@@ -64,6 +65,10 @@ const onSubmit = async (data) => {
     }
   };
 
+
+
+
+  
 
 
 
