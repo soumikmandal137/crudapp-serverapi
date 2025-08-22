@@ -1,4 +1,3 @@
-import { schema } from "@hookform/resolvers/ajv/src/__tests__/__fixtures__/data.js";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { Avatar, Box, Button, TextField, Typography } from "@mui/material";
 import React, { useEffect, useState } from "react";
@@ -7,8 +6,9 @@ import * as yup from "yup";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../../api/Axiosintance";
+import { toast } from "sonner";
 
-const validationSchema = yup.object().shape({
+const schema = yup.object().shape({
   title: yup.string().required("Title is required"),
   description: yup.string().required("Description is required"),
 });
@@ -19,24 +19,6 @@ const Addproduct = () => {
   const [loading, setLoading] = useState(false);
   const [photo, setPhoto] = useState(null);
   const [photoURL, setPhotoURL] = useState("");
-  const [editData, setEditData] = useState({});
-
-
-      useEffect(() => {
-    const fetchIdData = async () => {
-      setLoading(true);
-      try {
-        const response = await API.get(`/products/${id}`);
-        console.log(response);
-        setEditData(response?.data);
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchIdData();
-  }, []);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -45,53 +27,6 @@ const Addproduct = () => {
       setPhotoURL(URL.createObjectURL(file));
     }
   };
-
-  const onSubmitdata = (data) => {
-    console.log({ ...data, photo });
-    reset();
-  };
-
-  const handleCheckboxChange = (event, fieldName) => {
-    const currentValues = watch(fieldName) || [];
-    if (event.target.checked) {
-      setValue(fieldName, [...currentValues, event.target.name]);
-    } else {
-      setValue(
-        fieldName,
-        currentValues.filter((val) => val !== event.target.name)
-      );
-    }
-  };
-
-  useEffect(() => {
-    if (id) {
-      const fetchIdData = async () => {
-        setLoading(true);
-        try {
-          const response = await API.get(`/products/${id}`);
-          setEditData(response.data);
-        } catch (error) {
-          console.log(error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchIdData();
-    }
-  }, [id]);
-
-  useEffect(() => {
-    if (id) {
-      API.get(`/products/${id}`)
-        .then((res) => {
-          setEditData(res.data);
-        })
-        .catch((err) => {
-          console.error(err);
-          alert("Failed to fetch product data");
-        });
-    }
-  }, [id]);
 
   const {
     register,
@@ -105,37 +40,45 @@ const Addproduct = () => {
     defaultValues: {
       title: "",
       description: "",
+      image: "",
     },
   });
 
   const onSubmit = async (data) => {
+    setLoading(true);
     try {
-      if (id) {
-        await API.put(`/products/${id}`, data);
-        alert("product updated successfully");
-      } else {
-        await API.post("/products", data);
-        alert("product added successfully");
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("description", data.description);
+      if (photo) {
+        formData.append("image", photo);
       }
-      reset();
-      navigate("/admin/list");
+      const response = await API.post("/product/create", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("response", response);
+      if (response?.status === 200) {
+        toast(response?.data?.message);
+        reset();
+        setPhoto(null);
+        setPhotoURL("");
+        setTimeout(() => {
+          navigate("/admin/list");
+        }, 2000);
+      } else {
+        toast(response?.data?.message);
+      }
     } catch (error) {
-      console.error(error);
-      alert("Error saving product");
+      toast(error?.response?.data?.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (editData && Object.keys(editData).length > 0) {
-      Object.keys(editData).forEach((key) => {
-        // console.log(key, editData[key]);
-        setValue(key, editData[key]);
-      });
-    }
-  }, [editData, setValue]);
-
   return (
-  <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 4 }}>
+    <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ p: 4 }}>
       <Typography variant="h5" gutterBottom>
         Add Product
       </Typography>
@@ -173,7 +116,7 @@ const Addproduct = () => {
           />
         </Button>
       </Box>
-      <Button fullWidth type="submit" variant="contained" sx={{ mt: 2 }}>
+      <Button fullWidth type="submit" variant="contained" sx={{ mt: 2 }} disabled={loading}>
         {id ? "UPDATE" : "SAVE"}
       </Button>
     </Box>
@@ -181,20 +124,3 @@ const Addproduct = () => {
 };
 
 export default Addproduct;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -13,11 +13,13 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
 import API from "../api/Axiosintance";
+import { toast } from "sonner";
+import Cookies from "js-cookie";
 
 const schema = yup.object().shape({
-  name: yup.string().required("Name is required"),
+  first_name: yup.string().required("Firstname is required"),
+  last_name: yup.string().required("Lastname is required"),
   email: yup.string().email("Invalid email").required("Email is required"),
-  phone: yup.string().required("Phone is required"),
   password: yup.string().required("Password is required"),
 });
 
@@ -37,11 +39,6 @@ const Signup = () => {
     }
   };
 
-  const onSubmitdata = (data) => {
-    console.log({ ...data, photo });
-    reset();
-  };
-
   const {
     register,
     handleSubmit,
@@ -50,45 +47,55 @@ const Signup = () => {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      firstname: "",
-      lastname:"",
+      first_name: "",
+      last_name: "",
       email: "",
       password: "",
-      profilepicture:"",
+      profile_pic: "",
     },
   });
 
   const onSubmit = async (data) => {
+    console.log("Form data:", data);
+
     setLoading(true);
     try {
-      if (!fetchdata?.some((value) => value.email === data.email)) {
-        await API.post("/users", data);
-        alert("User signed up successfully!");
-        navigate("/login");
-        reset();
-        setfetchdata([]);
-      } else {
-        alert("This email is already registered.");
+      const formData = new FormData();
+      formData.append("first_name", data.first_name);
+      formData.append("last_name", data.last_name);
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      if (photo) {
+        formData.append("profile_pic", photo);
       }
+
+      const response = await API.post("/user/signup", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("response", response)
+      if(response?.status === 200){
+      toast(response?.data?.message);
+      Cookies.set("token", response.data.token,{
+        expires: 3,
+        sameSite: "strict"
+      })
+      reset();
+      setPhoto(null);
+      setPhotoURL("");
+      setTimeout(() => {
+        navigate("/admin/list");
+      }, 2000);
+    }else{
+       toast(response?.data?.message);
+    }
     } catch (error) {
-      console.error("Error during signup:", error);
-      alert("Signup failed. Please try again later.");
+      toast(error?.response?.data?.message)
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchdataFromAPI = async () => {
-      try {
-        const response = await API.get("/users");
-        setfetchdata(response?.data || []);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-    fetchdataFromAPI();
-  }, []);
 
   return (
     <Box
@@ -109,22 +116,20 @@ const Signup = () => {
             label="FirstName"
             fullWidth
             margin="normal"
-            {...register("firstname")}
-            error={!!errors.firstname}
-            helperText={errors.firstname?.message}
+            {...register("first_name")}
+            error={!!errors.first_name}
+            helperText={errors.first_name?.message}
           />
 
-
-        <TextField
+          <TextField
             label="Lastname"
             type="text"
             fullWidth
             margin="normal"
-            {...register("lastname")}
-            error={!!errors.lastname}
-            helperText={errors.lastname?.message}
+            {...register("last_name")}
+            error={!!errors.last_name}
+            helperText={errors.last_name?.message}
           />
-
 
           <TextField
             label="Email"
@@ -135,7 +140,7 @@ const Signup = () => {
             error={!!errors.email}
             helperText={errors.email?.message}
           />
-        
+
           <TextField
             label="Password"
             type="password"

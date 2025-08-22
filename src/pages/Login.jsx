@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Paper,
@@ -6,32 +6,27 @@ import {
   Button,
   Typography,
   InputLabel,
-  Link
+  Link,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import API from "../api/Axiosintance"
+import API from "../api/Axiosintance";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-
+import Cookies from "js-cookie";
+import { toast } from "sonner";
 
 const schema = yup.object({
-  email: yup
-    .string()
-    .email("Invalid email")
-    .required("Email is required"),
+  email: yup.string().email("Invalid email").required("Email is required"),
   password: yup
     .string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
 });
 
-  
-
 const Login = () => {
-  
-const navigate = useNavigate();
-
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -40,37 +35,31 @@ const navigate = useNavigate();
     resolver: yupResolver(schema),
   });
 
-
-
-    const onSubmit = async (data) => {
+  const onSubmit = async (data) => {
+    setLoading(true);
     try {
-       const response = await API.get(`/users?email=${data.email}`);
-      if (response.data.length === 0) {
-        alert("No account found. Please sign up first.");
-        navigate("/signup");
-        return;
-      }
+      const response = await API.post("/user/signin", data);
+      console.log(response);
 
-      const user = response.data[0];
-      if (user.password === data.password) {
-        localStorage.setItem("loginData", JSON.stringify(user));
-        alert("Login successful!");
-        navigate("/admin/list");
+      if (response?.status === 200) {
+        toast(response?.data?.message);
+        Cookies.set("token", response.data.token, {
+          expires: 3,
+          sameSite: "strict",
+        });
+        reset();
+        setTimeout(() => {
+          navigate("/admin/list");
+        }, 2000);
       } else {
-        alert("Password does not match");
+        toast(response?.data?.message);
       }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("Login failed. Please try again.");
+      toast(error?.response?.data?.message);
+    } finally {
+      setLoading(false);
     }
   };
-
-
-
-
-  
-
-
 
   return (
     <Box
@@ -107,20 +96,26 @@ const navigate = useNavigate();
             helperText={errors.password?.message}
           />
 
-          <Button fullWidth type="submit" variant="contained" sx={{ mt: 2 }}>
-            Login
+          <Button
+            fullWidth
+            type="submit"
+            variant="contained"
+            sx={{ mt: 2 }}
+            disabled={loading}
+          >
+            {loading ? "Login..." : "Login"}
           </Button>
         </form>
 
         <Typography variant="body2" sx={{ mt: 2 }}>
           Don't have an account?{" "}
-      <Link href="/signup" underline="hover">
-  Sign up
-</Link>
+          <Link href="/signup" underline="hover">
+            Sign up
+          </Link>
         </Typography>
       </Paper>
     </Box>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

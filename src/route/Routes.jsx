@@ -5,6 +5,7 @@ import SignUp from "../pages/Signup"
 import Product from"../pages/admin/Product"
 import Addproduct from"../pages/admin/Addproduct"
 import Productview from"../pages/admin/Productview"
+import PrivateRoute from "../components/PrivateRoute"
 
 
 
@@ -23,7 +24,11 @@ const Route = createBrowserRouter([
   },
  {
     path: "/admin",
-    element: <Wrapper/>,
+    element: <PrivateRoute/>,
+       children: [
+      {
+        path: "",
+        element: <Wrapper/>,
     children: [
       {
         path: "list",
@@ -42,6 +47,8 @@ const Route = createBrowserRouter([
         element:<Productview/>
       },
     ],
+  }
+  ]
   },
 
 
