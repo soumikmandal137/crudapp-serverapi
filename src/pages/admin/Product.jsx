@@ -19,27 +19,49 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import RemoveRedEyeIcon from "@mui/icons-material/RemoveRedEye";
+import { RemoveRedEye } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/Axiosintance";
-import { RemoveRedEye } from "@mui/icons-material";
 
 const Product = () => {
-   const [studentList, setstudentList] = useState([]);
+  const navigate = useNavigate();
+  const [productList, setproductList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-    const [openviewDialog, setOpenviewDialog] = useState(false);
-      const [viewDetails, setViewDetails] = useState({});
-      const [openDialog, setOpenDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [viewDetails, setViewDetails] = useState({});
+  const [openDialog, setOpenDialog] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
+  
 
-        const handleOpenDialog = () => setOpenDialog(true);
-  const handleCloseDialog = () => setOpenDialog(false);
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const res = await API.get("/products");
+        setproductList(res.data);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const handleDelete = async () => {
+    try {
+      await API.delete(`/products/${deleteId}`);
+      setproductList(productList.filter((item) => item.id !== deleteId));
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
 
   return (
-    
- <Box>
+    <Box>
       <Typography variant="h5" gutterBottom>
-        Student List
+        Product List
       </Typography>
 
       {!isLoading ? (
@@ -56,7 +78,6 @@ const Product = () => {
                 <TableCell>
                   <strong>Description</strong>
                 </TableCell>
-              
                 <TableCell>
                   <strong>Image</strong>
                 </TableCell>
@@ -67,17 +88,16 @@ const Product = () => {
             </TableHead>
 
             <TableBody>
-              {studentList?.map((value) => (
+              {productList?.map((value) => (
                 <TableRow key={value.id}>
                   <TableCell>{value.id}</TableCell>
                   <TableCell>{value.title}</TableCell>
                   <TableCell>{value.description}</TableCell>
-                
                   <TableCell>
                     {value.image && (
                       <img
                         src={value.image}
-                        alt={value.name}
+                        alt={value.title}
                         width={50}
                         height={50}
                         style={{ borderRadius: "50%" }}
@@ -91,15 +111,14 @@ const Product = () => {
                     <Button
                       onClick={() => {
                         setOpenDialog(true);
-                        setDeleteid(value.id);
+                        setDeleteId(value.id);
                       }}
                     >
                       <DeleteIcon />
                     </Button>
-
                     <Button
                       onClick={() => {
-                        setOpenviewDialog(true);
+                        setOpenViewDialog(true);
                         setViewDetails(value);
                       }}
                     >
@@ -117,41 +136,29 @@ const Product = () => {
         </Box>
       )}
 
-      <Dialog
-        open={openviewDialog}
-        onClose={() => setOpenviewDialog(false)}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">Student Details</DialogTitle>
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)}>
+        <DialogTitle>Product Details</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            <Typography>
-            Name: {viewDetails?.name}
-</Typography>
-            Email:{viewDetails?.email}
+          <DialogContentText>
+            <Typography>Title: {viewDetails?.title}</Typography>
+            <Typography>Description: {viewDetails?.description}</Typography>
           </DialogContentText>
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={openDialog}
-        onClose={handleCloseDialog}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
-      >
-        <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>{"Confirm Deletion"}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
-            Are you sure you want to delete this student?
+          <DialogContentText>
+            Are you sure you want to delete this product?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
           <Button
             onClick={() => {
-              handledelete();
-              handleCloseDialog();
+              handleDelete();
+              setOpenDialog(false);
             }}
             autoFocus
           >
@@ -160,9 +167,7 @@ const Product = () => {
         </DialogActions>
       </Dialog>
     </Box>
+  );
+};
 
-
-  )
-}
-
-export default Product
+export default Product;
