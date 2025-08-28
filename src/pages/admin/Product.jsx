@@ -22,41 +22,111 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { RemoveRedEye } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/Axiosintance";
+import TableComponent from "../../components/Tablecomponents";
+import { productList } from "../../hooks/reactquery/useProducts";
+import { Edit, Delete } from '@mui/icons-material';
+
+
 
 const Product = () => {
   const navigate = useNavigate();
-  const [productList, setproductList] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [productList, setproductList] = useState([]);
+  // const [isLoading, setIsLoading] = useState(false);
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [viewDetails, setViewDetails] = useState({});
   const [openDialog, setOpenDialog] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [page,setPage] = useState(1);
+    const [isDeleting, setIsDeleting] = useState(false);
 
+
+
+  const handleEdit = (id) => navigate(`/admin/edit/${id}`);
   
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const res = await API.get("/products");
-        setproductList(res.data);
-      } catch (err) {
-        console.error("Error fetching products:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
+
+const perpage=5
+
+
+const { data, isLoading, isError, error } = productList(page, perpage);
+const products =data?.data
+const totalPages =data?.totalPages
+console.log("data",data);
+
+
+  // useEffect(() => {
+  //   const fetchProducts = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const res = await API.get("/products", { page, perpage });
+  //       console.log("res", res);
+
+  //       setproductList(res.data);
+  //     } catch (err) {
+  //       console.error("Error fetching products:", err);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchProducts();
+  // }, []);
+
+  // const handleDelete = async () => {
+  //   try {
+  //     await API.delete(`/products/${deleteId}`);
+  //     setproductList(productList.filter((item) => item.id !== deleteId));
+  //   } catch (err) {
+  //     console.error("Delete failed:", err);
+  //   }
+  // };
+
+
+const columns = [
+  { field: "_id", headerName: "ID" },
+  { field: "title", headerName: "Title" },
+  { field: "description", headerName: "Description" },
+  { field: "status", headerName: "Status" },
+];
+
 
   const handleDelete = async () => {
     try {
-      await API.delete(`/products/${deleteId}`);
-      setproductList(productList.filter((item) => item.id !== deleteId));
+      setIsDeleting(true);
+      await API.delete(`/products/remove${deleteId}`);
+
+    
+      queryClient.invalidateQueries(["products"]);
+
+      console.log("Deleted product:", deleteId);
     } catch (err) {
       console.error("Delete failed:", err);
+    } finally {
+      setIsDeleting(false);
+      setDeleteId(null);
     }
   };
+
+
+
+
+  const renderActions = (row) => (
+    <>
+      <Edit
+        color="primary"
+        style={{ cursor: 'pointer', marginRight: 8 }}
+        onClick={() => handleEdit(row._id)}
+      />
+      <Delete
+        color="error"
+        style={{ cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+        onClick={() => handleDelete(row._id)}
+      />
+    </>
+  );
+
+
+
+
 
   return (
     <Box>
@@ -64,7 +134,7 @@ const Product = () => {
         Product List
       </Typography>
 
-      {!isLoading ? (
+      {/* {!isLoading ? (
         <TableContainer component={Paper} elevation={3}>
           <Table>
             <TableHead sx={{ bgcolor: "#f0f0f0" }}>
@@ -134,7 +204,21 @@ const Product = () => {
         <Box display="flex" justifyContent="center" mt={4}>
           <CircularProgress />
         </Box>
-      )}
+      )} */}
+
+
+
+<TableComponent
+        columns={columns}
+        rows={products}
+        actions={renderActions}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={(_, value) => setPage(value)}
+        loading={isDeleting}
+      />
+
+
 
       <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)}>
         <DialogTitle>Product Details</DialogTitle>
